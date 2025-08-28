@@ -1,0 +1,58 @@
+version: '3.8'
+
+# This file orchestrates the entire Tetracube application.
+# It defines services for the backend, frontend, and Jenkins CI/CD.
+
+services:
+  # Jenkins CI/CD Server
+  jenkins:
+    container_name: jenkins-server
+    # Build the custom Jenkins image using the Dockerfile.jenkins
+    build:
+      context: ./jenkins
+      dockerfile: Dockerfile.jenkins
+    # Map the host's Docker socket to the container
+    # This enables Jenkins to run Docker commands inside its container
+    volumes:
+      - ./jenkins_home:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      # Jenkins web UI
+      - "8080:8080"
+      # Jenkins JNLP agent port
+      - "50000:50000"
+    # Ensure Jenkins starts after the Docker daemon is ready
+    restart: on-failure
+
+  # Backend API Service
+  backend:
+    container_name: backend-api
+    build: ./backend
+    # Expose the backend API port
+    ports:
+      - "5001:5001"
+    # Use a persistent volume for any data that needs to be stored
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    # Define a dependency on the Jenkins service
+    # The 'backend' service will be started only after the 'jenkins' service is started
+    depends_on:
+      - jenkins
+    restart: on-failure
+
+  # Frontend Web App Service
+  frontend:
+    container_name: frontend-app
+    build: ./frontend
+    # Expose the frontend app port
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    # Define a dependency on the backend service
+    # This ensures the backend API is ready for the frontend to connect to
+    depends_on:
+      - backend
+    restart: on-failure
