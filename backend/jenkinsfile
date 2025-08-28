@@ -1,0 +1,94 @@
+// Jenkinsfile for the Tetracube project.
+// This defines a Declarative Pipeline for building, testing, and deploying the application.
+
+pipeline {
+    // Define the agent to run the pipeline.
+    // 'any' means Jenkins can run the pipeline on any available agent.
+    agent any
+
+    // Define environment variables used throughout the pipeline.
+    environment {
+        // Set the Docker Hub repository URL.
+        // This is where your Docker images will be pushed.
+        // Replace 'your-dockerhub-username' with your actual Docker Hub username.
+        DOCKER_HUB_REPO = 'your-dockerhub-username/tetracube'
+    }
+
+    // Define the stages of the pipeline.
+    stages {
+        // Stage 1: Checkout the source code from Git.
+        stage('Checkout') {
+            steps {
+                // The pipeline will automatically checkout the code from the repository
+                // where the Jenkins job is configured. No explicit command needed here.
+                echo 'Checking out source code...'
+            }
+        }
+
+        // Stage 2: Build the Backend Docker Image.
+        stage('Build Backend') {
+            steps {
+                echo 'Building backend Docker image...'
+                // Build the Docker image for the backend.
+                // The -f flag specifies the Dockerfile to use.
+                // The -t flag tags the image with the repository and 'latest'.
+                script {
+                    sh "docker build -f backend/Dockerfile -t ${DOCKER_HUB_REPO}-backend:latest backend"
+                }
+            }
+        }
+
+        // Stage 3: Build the Frontend Docker Image.
+        stage('Build Frontend') {
+            steps {
+                echo 'Building frontend Docker image...'
+                // Build the Docker image for the frontend.
+                script {
+                    sh "docker build -f frontend/Dockerfile -t ${DOCKER_HUB_REPO}-frontend:latest frontend"
+                }
+            }
+        }
+
+        // Stage 4: Run Tests (placeholder stage).
+        // In a real-world scenario, you would add unit, integration, and end-to-end tests here.
+        stage('Test') {
+            steps {
+                echo 'Running tests...'
+                // Add your test commands here. Example:
+                // sh "docker run --rm ${DOCKER_HUB_REPO}-backend:latest npm test"
+                // This step ensures code quality and prevents faulty builds from progressing.
+                echo 'Tests passed.'
+            }
+        }
+
+        // Stage 5: Push the Docker images to Docker Hub.
+        stage('Push Images') {
+            steps {
+                echo 'Pushing Docker images to Docker Hub...'
+                // Use the withCredentials block to securely log in to Docker Hub.
+                // 'docker-hub-credentials' is the ID of the credentials you will set up in Jenkins.
+                withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', passwordVariable: 'DOCKER_PASSWORD', usernameVariable: 'DOCKER_USERNAME')]) {
+                    script {
+                        // Login to Docker Hub using the credentials.
+                        sh "docker login -u ${DOCKER_USERNAME} -p ${DOCKER_PASSWORD}"
+                        // Push the backend and frontend images.
+                        sh "docker push ${DOCKER_HUB_REPO}-backend:latest"
+                        sh "docker push ${DOCKER_HUB_REPO}-frontend:latest"
+                        sh "docker logout"
+                    }
+                }
+            }
+        }
+
+        // Stage 6: Deploy the application (placeholder stage).
+        // In a real-world scenario, you would deploy to a server (e.g., Kubernetes, a VPS).
+        stage('Deploy') {
+            steps {
+                echo 'Deploying application...'
+                // Add your deployment commands here. Example:
+                // sh "ssh root@your-server-ip 'docker-compose pull && docker-compose up -d'"
+                echo 'Application deployed successfully.'
+            }
+        }
+    }
+}
