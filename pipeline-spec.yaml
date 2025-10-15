@@ -1,0 +1,51 @@
+apiVersion: v1
+kind: Pipeline
+metadata:
+  name: tetracube-ci-cd
+  description: CI/CD pipeline for Tetracube application
+spec:
+  stages:
+    - name: build
+      steps:
+        - name: install-dependencies
+          image: node:18-alpine
+          command: npm ci
+        - name: compile-typescript
+          image: node:18-alpine
+          command: npm run build
+          
+    - name: test
+      steps:
+        - name: unit-tests
+          image: node:18-alpine
+          command: npm run test:unit
+        - name: integration-tests
+          image: node:18-alpine
+          command: npm run test:integration
+          
+    - name: lint
+      steps:
+        - name: eslint
+          image: node:18-alpine
+          command: npm run lint
+          
+    - name: deploy
+      condition: branch == 'main'
+      steps:
+        - name: deploy-keymaster
+          image: bitnami/kubectl:latest
+          command: kubectl apply -f infra/k8s/keymaster-deploy.yaml
+        - name: deploy-gatekeeper
+          image: bitnami/kubectl:latest
+          command: kubectl apply -f infra/k8s/gatekeeper-deploy.yaml
+        - name: apply-network-policies
+          image: bitnami/kubectl:latest
+          command: kubectl apply -f infra/k8s/networkpolicy-keymaster.yaml
+          
+  notifications:
+    - type: email
+      recipients:
+        - dev-team@tetracube.io
+      on:
+        - failure
+        - success
