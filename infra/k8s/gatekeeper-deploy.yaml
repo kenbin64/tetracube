@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gatekeeper
+  labels:
+    app: gatekeeper
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: gatekeeper
+  template:
+    metadata:
+      labels:
+        app: gatekeeper
+    spec:
+      containers:
+      - name: gatekeeper
+        image: tetracube/gatekeeper:latest
+        ports:
+        - containerPort: 9090
+        env:
+        - name: NODE_ENV
+          value: "production"
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"

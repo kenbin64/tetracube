@@ -1,0 +1,27 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: keymaster-network-policy
+spec:
+  podSelector:
+    matchLabels:
+      app: keymaster
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: gatekeeper
+    ports:
+    - protocol: TCP
+      port: 8080
+  egress:
+  - to:
+    - podSelector:
+        matchLabels:
+          app: database
+    ports:
+    - protocol: TCP
+      port: 5432
