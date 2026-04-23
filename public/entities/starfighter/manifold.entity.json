@@ -2,7 +2,7 @@
   "entity": "starfighter",
   "name": "Starfighter",
   "tagline": "AI-driven space combat with adaptive NPC cognition",
-  "icon": "🚀",
+  "icon": "\ud83d\ude80",
   "version": "1.0.0",
   "status": "production",
   "dimension": {
@@ -12,7 +12,7 @@
     "_note": "z = x*y = 2 players avg * 30 min avg = 60; D4 PLANE on gyroid"
   },
   "launch": {
-    "url": "https://kensgames.com/starfighter/game.html",
+    "url": "https://kensgames.com/starfighter/",
     "params": {
       "mode": "solo"
     },

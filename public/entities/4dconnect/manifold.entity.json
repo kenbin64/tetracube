@@ -1,0 +1,49 @@
+{
+  "entity": "4dconnect",
+  "name": "4D Connect",
+  "tagline": "Connect-4 extended into the 4th dimension \u2014 every move changes the board geometry",
+  "icon": "\u229e",
+  "version": "1.0.0",
+  "status": "production",
+  "dimension": {
+    "x": 2,
+    "y": 12,
+    "z": 24,
+    "_note": "z = x*y = 2 players * 12 min = 24; the game itself is a 4-dimensional manifold board"
+  },
+  "launch": {
+    "url": "https://kensgames.com/4dconnect/",
+    "params": {
+      "offline": "true"
+    },
+    "allowBots": true
+  },
+  "setup": {
+    "botOptions": [
+      0,
+      1
+    ],
+    "musicToggle": true,
+    "sfxToggle": true
+  },
+  "substrates": {
+    "board": "board_manifold_substrate.js",
+    "moves": "inline:MovementRules",
+    "win": "inline:WinCondition",
+    "render": "inline:CanvasRenderer"
+  },
+  "manifold_bridge": {
+    "entry_var": "window.__MANIFOLD__",
+    "exposes": [
+      "boardState",
+      "currentPlayer",
+      "winner",
+      "dimension"
+    ]
+  },
+  "source": {
+    "portal": "kensgames.com",
+    "path": "4dconnect/",
+    "manifold": "4dconnect/manifold.game.json"
+  }
+}

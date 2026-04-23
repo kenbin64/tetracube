@@ -2,7 +2,7 @@
   "entity": "brickbreaker3d",
   "name": "BrickBreaker 3D",
   "tagline": "3D brick breaking on a Three.js stage",
-  "icon": "🧱",
+  "icon": "\ud83e\uddf1",
   "version": "1.0.0",
   "status": "production",
   "dimension": {
@@ -12,7 +12,7 @@
     "_note": "z = x*y = 2 players avg * 22 min avg = 44; D4 PLANE on gyroid"
   },
   "launch": {
-    "url": "https://kensgames.com/brickbreaker3d/game.html",
+    "url": "https://kensgames.com/brickbreaker3d/",
     "allowBots": false
   },
   "setup": {

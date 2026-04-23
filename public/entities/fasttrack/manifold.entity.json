@@ -1,8 +1,8 @@
 {
   "entity": "fasttrack",
   "name": "FastTrack",
-  "tagline": "Classic board game strategy — peg racing with a card-driven twist",
-  "icon": "🏁",
+  "tagline": "Classic board game strategy \u2014 peg racing with a card-driven twist",
+  "icon": "\ud83c\udfc1",
   "version": "2.1.0",
   "status": "production",
   "dimension": {
@@ -12,7 +12,7 @@
     "_note": "z = x*y = 3 players avg * 45 min avg = 135; D4 PLANE on gyroid"
   },
   "launch": {
-    "url": "https://kensgames.com/fasttrack/game.html",
+    "url": "https://kensgames.com/fasttrack/",
     "params": {
       "offline": "true",
       "ai_players": "1",
