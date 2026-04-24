@@ -10,6 +10,42 @@
  *
  * Default adapter: ./adapters/sqlite.js (loaded lazily on first use).
  * Swap with setAdapter() to run against fs, memory, or any conforming backend.
+ *
+ * ───────────────────────────────────────────────────────────────────────────
+ * PRIMITIVES — dimensional operators
+ * ───────────────────────────────────────────────────────────────────────────
+ *   AXIOMS   z = xy (local consistency), m = xyz (global identity).
+ *
+ *   Operators are classified by what they do to dimensionality.  Every lens
+ *   (scale, layout, color, lex, ...) invokes one of these primitives; storing
+ *   none of them.  The runtime supplies the arithmetic; the manifold supplies
+ *   the axis.
+ *
+ *     +  / −   step along an existing axis.  Distance, kerning, leading,
+ *              gap between glyphs, gap between words, gap between lines,
+ *              margin.  No change in dim.                   (step)
+ *
+ *     ×        cross two axes.  Area, volume, mass, the 2-D box around a
+ *              paragraph, z = xy itself.  Raises dim by one.  (cross)
+ *
+ *     ÷        invert a cross.  How many of x fit in y.  Shrink, zoom-out,
+ *              responsive scale-down.  Lowers dim by one when exact.  (count)
+ *
+ *     ·<1     scalar mul.  Stretch or compress along one axis without
+ *              adding an axis.  No change in dim.            (step ×)
+ *
+ *     mod      step on a periodic axis.  Wrap, hue rotation, tiling.
+ *              No change in dim; the axis is closed.         (cycle)
+ *
+ *     project  drop an axis.  Flatten plane → line, line → point.
+ *              Collapse, hide, degenerate.  Lowers dim by one.  (drop)
+ *
+ *   WHITESPACE READING.  Kerning and word-spacing are + on the glyph-line
+ *   axis.  Leading and paragraph gap are + on the line-stack axis.  A page
+ *   or container box is × (width · height).  Shrink is ÷.  A collapsed
+ *   element is a project.  The ladder tokenizer collapses inter-word
+ *   whitespace because those measurements live on the scale lens, not in
+ *   the word cells.
  * ═══════════════════════════════════════════════════════════════════════════════
  */
 'use strict';

@@ -33,7 +33,10 @@ const motion = require('./motion');
 const handshake = require('./handshake');
 const git = require('./git');
 const archive = require('./archive');
+const directives = require('./directives');
+const lens = require('./lens');
 const dims = require('./dimensions');
+const dimensionOS = require('../dimensionOS');
 
 function strictError(err) {
   // AGENTS.md §3 shape: { success:false, error, detail, strict:true }
@@ -129,6 +132,68 @@ function createRouter() {
   r.post('/handshake/oneshot', (req, res) => _send(res, () => handshake.oneshot(req.body || {})));
   r.get('/handshakes', (_req, res) => _send(res, () => handshake.list()));
 
+  // Directive registry + substrate pointer ingestion
+  r.post('/directives/register', (req, res) => _send(res, () => directives.registerDirective(req.body || {})));
+  r.get('/directives/:namespace/:directive_id', (req, res) => _send(res, () => {
+    const { namespace, directive_id } = req.params;
+    const row = directives.getDirective(namespace, directive_id);
+    if (!row) {
+      const err = new Error(`directive not found: ${namespace}/${directive_id}`);
+      err.code = 'UNKNOWN_DIRECTIVE';
+      err.strict = true;
+      throw err;
+    }
+    return row;
+  }));
+  r.get('/directives/:namespace', (req, res) => _send(res, () => {
+    const { namespace } = req.params;
+    const limit = parseInt(req.query.limit || '200', 10);
+    return directives.listDirectives({ namespace, limit });
+  }));
+  r.post('/directives/pointer/ingest', (req, res) => _send(res, () => directives.ingestPointer(req.body || {})));
+
+  // ── Lens: geometric extraction (dimensionOS) ──────────────────────────────
+  // Extract the geometric profile of any manifold coordinate.
+  // Data is derived from the gyroid surface equation — not from stored cells.
+  // Stored cells, if present, appear as an overlay on top of the geometry.
+  //
+  //   GET /lens/:namespace/:table/:rowKey/:colKey?level=3
+  //     → full extraction: geometry + overlay (if any)
+  //
+  //   GET /lens/surface?gx=1.2&gy=0.7
+  //     → raw surface profile at given gyroid coordinates (no namespace)
+  //
+  //   GET /lens/scan?gxMin=0&gxMax=6.28&gyMin=0&gyMax=6.28&steps=8
+  //     → scan a region of the manifold surface
+  //
+  r.get('/lens/surface', (req, res) => _send(res, () => {
+    const gx = parseFloat(req.query.gx);
+    const gy = parseFloat(req.query.gy);
+    const gz = req.query.gz !== undefined ? parseFloat(req.query.gz) : null;
+    if (!Number.isFinite(gx) || !Number.isFinite(gy)) {
+      const err = new Error('gx and gy query parameters are required and must be numbers');
+      err.code = 'INVALID_COORDS';
+      err.strict = true;
+      throw err;
+    }
+    return lens.surfaceAt(gx, gy, gz);
+  }));
+
+  r.get('/lens/scan', (req, res) => _send(res, () => {
+    const gxMin = parseFloat(req.query.gxMin ?? '0');
+    const gxMax = parseFloat(req.query.gxMax ?? String(2 * Math.PI));
+    const gyMin = parseFloat(req.query.gyMin ?? '0');
+    const gyMax = parseFloat(req.query.gyMax ?? String(2 * Math.PI));
+    const steps = parseInt(req.query.steps || '8', 10);
+    return lens.scanSurface([gxMin, gxMax], [gyMin, gyMax], steps);
+  }));
+
+  r.get('/lens/:namespace/:table/:rowKey/:colKey', (req, res) => _send(res, () => {
+    const { namespace, table, rowKey, colKey } = req.params;
+    const level = parseInt(req.query.level || '1', 10);
+    return lens.extract(namespace, table, rowKey, colKey, level);
+  }));
+
   // Git-backed cells (async)
   r.post('/git/resolve', (req, res) => _asyncSend(res, () => git.resolve(req.body || {})));
   r.post('/git/stack', (req, res) => _asyncSend(res, () => git.walkStack(req.body || {})));
@@ -146,6 +211,33 @@ function createRouter() {
     max_level: dims.MAX_LEVEL,
     fib: dims.FIB,
   }));
+
+  // ── dimensionOS: manifold identity + substrate registry ──────────────────
+  // dimensionOS.net is the extraction layer: domains resolve to substrates,
+  // not files.  These routes expose the OS identity and substrate registry.
+  //
+  //   GET  /dimensionos/identity       — read the D7 root identity cell
+  //   GET  /dimensionos/substrates     — list registered substrates
+  //   POST /dimensionos/substrates     — register a substrate
+  //
+  r.get('/dimensionos/identity', (_req, res) => _send(res, () => {
+    const cell = dimensionOS.readIdentity();
+    if (!cell) {
+      // Not yet seeded — seed it now and return
+      dimensionOS.seedIdentity();
+      return dimensionOS.readIdentity();
+    }
+    return cell;
+  }));
+
+  r.get('/dimensionos/substrates', (req, res) => _send(res, () => {
+    const limit = parseInt(req.query.limit || '200', 10);
+    return dimensionOS.listSubstrates({ limit });
+  }));
+
+  r.post('/dimensionos/substrates', (req, res) => _send(res, () =>
+    dimensionOS.registerSubstrate(req.body || {})
+  ));
 
   return r;
 }

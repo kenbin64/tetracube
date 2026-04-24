@@ -123,12 +123,178 @@ const schemas = {
       frame: { $ref: '#/components/schemas/StackFrame' },
     },
   },
+  Directive: {
+    type: 'object',
+    properties: {
+      addr_hash: { type: 'string' },
+      namespace: { type: 'string' },
+      directive_id: { type: 'string' },
+      name: { type: 'string' },
+      substrates: { type: 'array', items: { type: 'string' } },
+      dataset_pointers: { type: 'array', items: { type: 'string' } },
+      api_pointers: { type: 'array', items: { type: 'string' } },
+      schema_version: { type: 'string' },
+      source: { type: 'string' },
+      updated_at: { type: 'integer' },
+    },
+  },
+  DirectiveRegisterRequest: {
+    type: 'object',
+    required: ['namespace', 'directive_id'],
+    properties: {
+      namespace: { type: 'string' },
+      directive_id: { type: 'string' },
+      name: { type: 'string' },
+      substrates: { type: 'array', items: { type: 'string' } },
+      dataset_pointers: { type: 'array', items: { type: 'string' } },
+      api_pointers: { type: 'array', items: { type: 'string' } },
+      schema_version: { type: 'string' },
+      source: { type: 'string' },
+    },
+  },
+  DirectiveRegisterResult: {
+    type: 'object',
+    properties: {
+      addr_hash: { type: 'string' },
+      changed: { type: 'boolean' },
+      identity: { type: 'string' },
+      gx: { type: 'number' },
+      gy: { type: 'number' },
+      gz: { type: 'number' },
+      level: { type: 'integer' },
+      directive: { $ref: '#/components/schemas/Directive' },
+    },
+  },
+  DirectivePointerRequest: {
+    type: 'object',
+    required: ['namespace', 'directive_id', 'pointer_uri'],
+    properties: {
+      namespace: { type: 'string' },
+      directive_id: { type: 'string' },
+      pointer_uri: { type: 'string' },
+      pointer_kind: { type: 'string', enum: ['dataset', 'api', 'app'] },
+      origin: { type: 'string' },
+      etag: { type: 'string', nullable: true },
+    },
+  },
+  DirectivePointerResult: {
+    type: 'object',
+    properties: {
+      addr_hash: { type: 'string' },
+      changed: { type: 'boolean' },
+      identity: { type: 'string' },
+      gx: { type: 'number' },
+      gy: { type: 'number' },
+      gz: { type: 'number' },
+      level: { type: 'integer' },
+      pointer: {
+        type: 'object',
+        properties: {
+          namespace: { type: 'string' },
+          directive_id: { type: 'string' },
+          pointer_id: { type: 'string' },
+          pointer_kind: { type: 'string' },
+          pointer_uri: { type: 'string' },
+          origin: { type: 'string' },
+          extern_addr: { type: 'string' },
+          handshake_ref: { type: 'string' },
+          ingested_at: { type: 'integer' },
+        },
+      },
+    },
+  },
   Health: {
     type: 'object',
     properties: {
       ok: { type: 'boolean' }, service: { type: 'string' },
       schema: { type: 'string' }, max_level: { type: 'integer' },
       fib: { type: 'array', items: { type: 'integer' } },
+    },
+  },
+
+  // ── Lens: geometric extraction schemas ────────────────────────────────────
+  SurfaceProfile: {
+    type: 'object',
+    description: 'Geometric truth at a gyroid coordinate — derived from math, not storage.',
+    properties: {
+      gx: { type: 'number' }, gy: { type: 'number' }, gz: { type: 'number' },
+      surface_f: { type: 'number', description: 'F(gx,gy,gz); 0 = on surface' },
+      on_surface: { type: 'boolean' },
+      residual: { type: 'number' },
+      relation_surface: { type: 'number', description: 'z = gx·gy (relation surface seed)' },
+      curvature: { type: 'number', description: 'Mean curvature proxy; 0 on minimal surface' },
+      inflections: {
+        type: 'array', items: { type: 'number' },
+        description: 'Natural index anchors (∂²F/∂z² = 0 near surface)'
+      },
+      neighbors: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            gx: { type: 'number' }, gy: { type: 'number' }, gz: { type: 'number' },
+            direction: { type: 'string', enum: ['x+', 'x-', 'y+', 'y-', 'z+', 'z-'] },
+          },
+        },
+      },
+    },
+  },
+  LensExtraction: {
+    type: 'object',
+    description: 'Full extraction at a named manifold coordinate: geometry (always) + stored overlay (if any).',
+    properties: {
+      addr: {
+        type: 'object',
+        properties: {
+          namespace: { type: 'string' }, table: { type: 'string' },
+          rowKey: { type: 'string' }, colKey: { type: 'string' },
+          level: { type: 'integer' },
+        },
+      },
+      geometry: { $ref: '#/components/schemas/SurfaceProfile' },
+      overlay: { description: 'Stored cell value (null if no cell written)', nullable: true },
+      overlay_meta: {
+        nullable: true,
+        type: 'object',
+        properties: {
+          identity: { type: 'string' }, updated_at: { type: 'integer' },
+          value_kind: { type: 'string' }, addr_hash: { type: 'string' },
+        },
+      },
+      extraction_basis: { type: 'string', enum: ['geometry', 'overlay', 'geometry+overlay'] },
+    },
+  },
+
+  // ── dimensionOS schemas ───────────────────────────────────────────────────
+  DimensionOSIdentity: {
+    type: 'object',
+    description: 'D7 M-cell — the whole-object identity of this dimensionOS manifold instance.',
+    properties: {
+      os: { type: 'string' }, version: { type: 'string' }, domain: { type: 'string' },
+      description: { type: 'string' }, operator: { type: 'string' },
+      model: { type: 'string' },
+      axioms: { type: 'array', items: { type: 'string' } },
+      fibonacci: { type: 'array', items: { type: 'integer' } },
+      seeded_at: { type: 'integer' },
+    },
+  },
+  SubstrateRequest: {
+    type: 'object',
+    required: ['substrate_id'],
+    properties: {
+      substrate_id: { type: 'string' },
+      origin_domain: { type: 'string', nullable: true },
+      name: { type: 'string' },
+      extraction_level: { type: 'integer', minimum: 1, maximum: 7, default: 4 },
+      meta: { type: 'object' },
+    },
+  },
+  Substrate: {
+    type: 'object',
+    properties: {
+      substrate_id: { type: 'string' }, origin_domain: { type: 'string', nullable: true },
+      name: { type: 'string' }, extraction_level: { type: 'integer' },
+      meta: { type: 'object' }, registered_at: { type: 'integer' },
     },
   },
 };
@@ -151,6 +317,7 @@ function spec() {
     tags: [
       { name: 'namespace' }, { name: 'cell' }, { name: 'op' },
       { name: 'stack' }, { name: 'motion' }, { name: 'handshake' },
+      { name: 'directive' }, { name: 'lens' }, { name: 'dimensionos' },
       { name: 'git' }, { name: 'archive' }, { name: 'meta' },
     ],
     paths: paths(VERBS),

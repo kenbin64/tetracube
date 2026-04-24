@@ -31,6 +31,10 @@
       "path": "/entities/4dtictactoe/manifold.entity.json"
     },
     {
+      "id": "4dconnect",
+      "path": "/entities/4dconnect/manifold.entity.json"
+    },
+    {
       "id": "assemble",
       "path": "/entities/assemble/manifold.entity.json"
     },

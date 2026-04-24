@@ -22,10 +22,10 @@ const okArr = (name) => ({
 const okAny = (schema) => ({ 200: { description: 'ok', content: json(schema) } });
 
 const cellParams = [
-  { name: 'ns',    in: 'path', required: true, schema: { type: 'string' } },
+  { name: 'ns', in: 'path', required: true, schema: { type: 'string' } },
   { name: 'table', in: 'path', required: true, schema: { type: 'string' } },
-  { name: 'row',   in: 'path', required: true, schema: { type: 'string' } },
-  { name: 'col',   in: 'path', required: true, schema: { type: 'string' } },
+  { name: 'row', in: 'path', required: true, schema: { type: 'string' } },
+  { name: 'col', in: 'path', required: true, schema: { type: 'string' } },
 ];
 
 module.exports = function paths(VERBS) {
@@ -155,6 +155,133 @@ module.exports = function paths(VERBS) {
         responses: {
           ...okAny({ oneOf: [ref('Cell'), ref('Void')] }), ...errResp,
         },
+      },
+    },
+    '/directives/register': {
+      post: {
+        tags: ['directive'], summary: 'Register/update a manifold directive',
+        requestBody: {
+          required: true, content: json(ref('DirectiveRegisterRequest')),
+        },
+        responses: { ...okRef('DirectiveRegisterResult'), ...errResp },
+      },
+    },
+    '/directives/{namespace}/{directive_id}': {
+      parameters: [
+        { name: 'namespace', in: 'path', required: true, schema: { type: 'string' } },
+        { name: 'directive_id', in: 'path', required: true, schema: { type: 'string' } },
+      ],
+      get: {
+        tags: ['directive'], summary: 'Fetch a directive by namespace/id',
+        responses: { ...okRef('Cell'), ...errResp },
+      },
+    },
+    '/directives/{namespace}': {
+      parameters: [
+        { name: 'namespace', in: 'path', required: true, schema: { type: 'string' } },
+        { name: 'limit', in: 'query', required: false, schema: { type: 'integer', default: 200 } },
+      ],
+      get: {
+        tags: ['directive'], summary: 'List directives within a namespace',
+        responses: { ...okArr('Directive'), ...errResp },
+      },
+    },
+    '/directives/pointer/ingest': {
+      post: {
+        tags: ['directive'], summary: 'Ingest an external pointer for a directive',
+        requestBody: {
+          required: true, content: json(ref('DirectivePointerRequest')),
+        },
+        responses: { ...okRef('DirectivePointerResult'), ...errResp },
+      },
+    },
+
+    // ── Lens: geometric extraction (dimensionOS) ────────────────────────────
+    '/lens/surface': {
+      get: {
+        tags: ['lens'], summary: 'Raw gyroid surface profile at (gx, gy)',
+        description: 'Returns the geometric truth at a manifold coordinate — '
+          + 'no namespace, no stored data.  The surface equation '
+          + 'F(x,y,z) = sin(x)cos(y) + sin(y)cos(z) + sin(z)cos(x) = 0 is '
+          + 'the sole authority.',
+        parameters: [
+          { name: 'gx', in: 'query', required: true, schema: { type: 'number' } },
+          { name: 'gy', in: 'query', required: true, schema: { type: 'number' } },
+          {
+            name: 'gz', in: 'query', required: false, schema: { type: 'number' },
+            description: 'Optional z seed; Newton-Raphson finds the surface root near this value'
+          },
+        ],
+        responses: { ...okRef('SurfaceProfile'), ...errResp },
+      },
+    },
+    '/lens/scan': {
+      get: {
+        tags: ['lens'], summary: 'Scan a region of the gyroid surface',
+        description: 'Returns a grid of surface profiles across a (gx, gy) range. '
+          + 'Like running your hand across a guitar neck — all harmonics in a range.',
+        parameters: [
+          { name: 'gxMin', in: 'query', schema: { type: 'number', default: 0 } },
+          { name: 'gxMax', in: 'query', schema: { type: 'number', default: 6.2832 } },
+          { name: 'gyMin', in: 'query', schema: { type: 'number', default: 0 } },
+          { name: 'gyMax', in: 'query', schema: { type: 'number', default: 6.2832 } },
+          { name: 'steps', in: 'query', schema: { type: 'integer', default: 8, minimum: 2, maximum: 32 } },
+        ],
+        responses: {
+          200: {
+            description: 'grid of surface profiles',
+            content: json({ type: 'array', items: ref('SurfaceProfile') })
+          },
+          ...errResp,
+        },
+      },
+    },
+    '/lens/{namespace}/{table}/{rowKey}/{colKey}': {
+      parameters: [
+        { name: 'namespace', in: 'path', required: true, schema: { type: 'string' } },
+        { name: 'table', in: 'path', required: true, schema: { type: 'string' } },
+        { name: 'rowKey', in: 'path', required: true, schema: { type: 'string' } },
+        { name: 'colKey', in: 'path', required: true, schema: { type: 'string' } },
+      ],
+      get: {
+        tags: ['lens'], summary: 'Extract geometric profile of a manifold coordinate',
+        description: 'Returns the geometric truth at this address (always present) '
+          + 'plus any stored cell as an overlay annotation.  The geometry IS the data; '
+          + 'the stored value, if any, is a human-injected annotation on top.',
+        parameters: [
+          { name: 'level', in: 'query', schema: { type: 'integer', minimum: 1, maximum: 7, default: 1 } },
+        ],
+        responses: { ...okRef('LensExtraction'), ...errResp },
+      },
+    },
+
+    // ── dimensionOS: manifold identity + substrate registry ─────────────────
+    '/dimensionos/identity': {
+      get: {
+        tags: ['dimensionos'], summary: 'Read the D7 root identity of this dimensionOS instance',
+        description: 'The D7 M-cell that is the whole-object identity of this manifold. '
+          + 'All substrates, namespaces, and pointers unfold from this root.',
+        responses: { ...okRef('DimensionOSIdentity'), ...errResp },
+      },
+    },
+    '/dimensionos/substrates': {
+      get: {
+        tags: ['dimensionos'], summary: 'List registered substrates',
+        responses: {
+          200: {
+            description: 'list of substrates',
+            content: json({ type: 'array', items: ref('Substrate') })
+          },
+          ...errResp,
+        },
+      },
+      post: {
+        tags: ['dimensionos'], summary: 'Register a substrate',
+        description: 'A substrate is a named data surface that domains and URLs resolve to. '
+          + 'When a URL points to a substrate, the response is extracted from geometry, '
+          + 'not served from disk.',
+        requestBody: { required: true, content: json(ref('SubstrateRequest')) },
+        responses: { ...okRef('Substrate'), ...errResp },
       },
     },
   };
